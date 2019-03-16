@@ -1,0 +1,15 @@
+hook-one:
+  if-already-in-luckperms-group: "Some Required Group"
+
+  if-achievements: [
+    "Achievement One"
+    "Achievement Two"
+    "Achievement Three"
+    "Achievement Four"
+    "Achievement Five"
+  ]
+
+  then-luckperms-groups: [
+    - "primary:Five Achievements Group"
+    - "Some Other Group"
+  ]

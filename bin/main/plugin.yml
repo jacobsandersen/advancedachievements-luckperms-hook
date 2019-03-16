@@ -1,0 +1,5 @@
+name: StarterPlugin
+description: Enter a description here
+version: 1.0.0-SNAPSHOT
+authors: [minxi, simpleauthority]
+main: gg.vale.code.aalphook.MyPluginNamePlugin

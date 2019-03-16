@@ -1,0 +1,6 @@
+name: AdvancedAchievements-LuckPerms-Hook
+description: A middleman plugin to listen for AdvancedAchievements and LuckPerms events and coordinate between the two
+version: 1.0.0-SNAPSHOT
+authors: [simpleauthority]
+depend: [AdvancedAchievements, LuckPerms]
+main: gg.vale.code.aalphook.AALPHookPlugin
