@@ -1,15 +1,13 @@
-hook-one:
-  if-already-in-luckperms-group: "Some Required Group"
+apprentice-to-master-hook:
+  if-already-in-luckperms-group: "apprentice_of_the_environment"
 
-  if-achievements: [
-    "Achievement One"
-    "Achievement Two"
-    "Achievement Three"
-    "Achievement Four"
-    "Achievement Five"
-  ]
+  if-achievements:
+    - "kill_10_sheep"
+    - "kill_15_zombies"
+    - "obtain_32_stone"
+    - "mine_16_obsidian"
+    - "tame_5_horses"
 
-  then-luckperms-groups: [
-    - "primary:Five Achievements Group"
-    - "Some Other Group"
-  ]
+  then-luckperms-actions:
+    - "delgroup:apprentice_of_the_environment"
+    - "addgroup:master_of_the_environment"
