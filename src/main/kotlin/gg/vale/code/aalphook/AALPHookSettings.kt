@@ -8,7 +8,8 @@ class AALPHookSettings(private val plugin: AALPHookPlugin) : BukkitKonfig(plugin
     }
 
     fun setDebug(debug: Boolean) {
-        return set("debug", debug)
+        set("debug", debug)
+        saveFile()
     }
 
     override fun reload() {
