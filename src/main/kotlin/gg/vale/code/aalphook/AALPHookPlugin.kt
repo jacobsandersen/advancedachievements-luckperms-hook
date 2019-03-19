@@ -17,6 +17,7 @@ class AALPHookPlugin : JavaPlugin() {
     lateinit var config: AALPHookConfig
     lateinit var settings: AALPHookSettings
     internal lateinit var loadedHooks: Set<AALPHookConfig.Hook>
+    internal var debug: Boolean = false
     private lateinit var advancedAchievements: AdvancedAchievementsAPI
     private lateinit var luckPerms: LuckPermsApi
 
@@ -25,6 +26,7 @@ class AALPHookPlugin : JavaPlugin() {
         config = AALPHookConfig(this)
         loadedHooks = config.getHooks()
         settings = AALPHookSettings(this)
+        debug = settings.isDebug()
 
         logger.info("Checking required plugins are installed and enabled, please wait...")
         checkPlugin("AdvancedAchievements") {
@@ -74,7 +76,7 @@ class AALPHookPlugin : JavaPlugin() {
     }
 
     private fun debug(message: String, level: Level = Level.INFO) {
-        if (settings.isDebug()) logger.log(level, message)
+        if (debug) logger.log(level, message)
     }
 
     fun synchronize(player: Player) {

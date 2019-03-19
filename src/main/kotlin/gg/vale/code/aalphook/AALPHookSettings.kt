@@ -10,4 +10,9 @@ class AALPHookSettings(private val plugin: AALPHookPlugin) : BukkitKonfig(plugin
     fun setDebug(debug: Boolean) {
         return set("debug", debug)
     }
+
+    override fun reload() {
+        super.reload()
+        plugin.debug = isDebug()
+    }
 }
