@@ -11,6 +11,7 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
 import java.lang.RuntimeException
+import java.util.logging.Level
 
 class AALPHookPlugin : JavaPlugin() {
     lateinit var config: AALPHookConfig
@@ -72,33 +73,66 @@ class AALPHookPlugin : JavaPlugin() {
         server.pluginManager.disablePlugin(this)
     }
 
-    fun synchronize(player: Player) {
-        val user = luckPerms.userManager.getUser(player.uniqueId) ?: return
+    private fun debug(message: String, level: Level = Level.INFO) {
+        if (settings.isDebug()) logger.log(level, message)
+    }
 
-        loadedHooks.forEach loadedHooks@{ hook ->
+    fun synchronize(player: Player) {
+        val pdn = player.displayName
+        val user = luckPerms.userManager.getUser(player.uniqueId)
+        if (user == null) {
+            debug("Failed to load LP User Object for player $pdn")
+            return
+        }
+
+        debug("Running hooks for player $pdn")
+        for (hook in loadedHooks) {
+            debug("Running hook $hook for $pdn")
             val requiredGroup = hook.requiredGroup
             if (requiredGroup != null) {
-                val loaded = luckPerms.getGroup(requiredGroup) ?: return@loadedHooks
+                debug("Hook $hook requires LP group $requiredGroup")
+                val loaded = luckPerms.getGroup(requiredGroup)
+                if (loaded == null) {
+                    debug("Failed to load LP Group Object for group $requiredGroup")
+                    continue
+                }
+
+                debug("Checking if player $pdn has required group for hook $hook")
                 val node = luckPerms.nodeFactory.makeGroupNode(loaded).build()
                 if (!user.hasPermission(node).asBoolean()) {
-                    return@loadedHooks
+                    debug("Player $pdn did not have the required group for $hook")
+                    continue
                 }
+
+                debug("Player $pdn did have the required group for $hook; hook processing will proceed.")
             }
 
+            debug("Checking required achievement criteria for hook $hook")
             val meetsRequiredAchievementCriteria = hook.requiredAchievements.all {
-                advancedAchievements.hasPlayerReceivedAchievement(player.uniqueId, it)
+                debug("Checking $pdn has completed achievement $it")
+                val completed = advancedAchievements.hasPlayerReceivedAchievement(player.uniqueId, it)
+                debug("User has ${if (completed) "" else "not"} completed achievement $it")
+                completed
             }
 
             if (meetsRequiredAchievementCriteria) {
-                hook.thenApplyActions.forEach applyActions@{ action ->
+                debug("Hook $hook achievement criteria was met by $pdn; hook processing will proceed.")
 
-                    val toApply = luckPerms.getGroup(action.value) ?: return@applyActions
+                for (action in hook.thenApplyActions) {
+                    debug("Running $hook action $action for $pdn")
+
+                    val toApply = luckPerms.getGroup(action.value)
+                    if (toApply == null) {
+                        debug("Could not resolve LP Group Object referenced by hook $hook action $action")
+                        continue
+                    }
 
                     val result = when (action.key) {
                         AALPHookConfig.LuckPermsActionType.ADDGROUP -> doAddGroup(user, toApply)
                         AALPHookConfig.LuckPermsActionType.DELGROUP -> doDelGroup(user, toApply)
                     }
 
+                    debug("Processing result for hook $hook action $action")
                     when (result.first) {
                         true -> {
                             when (result.second) {
@@ -117,7 +151,9 @@ class AALPHookPlugin : JavaPlugin() {
                     }
                 }
 
+                debug("Synchronizing changes with LuckPerms...")
                 luckPerms.userManager.saveUser(user)
+                debug("Done!")
             }
         }
     }
