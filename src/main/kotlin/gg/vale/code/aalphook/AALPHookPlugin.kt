@@ -14,6 +14,7 @@ import java.lang.RuntimeException
 
 class AALPHookPlugin : JavaPlugin() {
     lateinit var config: AALPHookConfig
+    lateinit var settings: AALPHookSettings
     internal lateinit var loadedHooks: Set<AALPHookConfig.Hook>
     private lateinit var advancedAchievements: AdvancedAchievementsAPI
     private lateinit var luckPerms: LuckPermsApi
@@ -22,6 +23,7 @@ class AALPHookPlugin : JavaPlugin() {
         logger.info("Preparing configuration...")
         config = AALPHookConfig(this)
         loadedHooks = config.getHooks()
+        settings = AALPHookSettings(this)
 
         logger.info("Checking required plugins are installed and enabled, please wait...")
         checkPlugin("AdvancedAchievements") {
@@ -76,8 +78,9 @@ class AALPHookPlugin : JavaPlugin() {
         loadedHooks.forEach loadedHooks@{ hook ->
             val requiredGroup = hook.requiredGroup
             if (requiredGroup != null) {
-                val loaded = luckPerms.getGroup(requiredGroup)
-                if (loaded == null || !user.inheritsGroup(loaded)) {
+                val loaded = luckPerms.getGroup(requiredGroup) ?: return@loadedHooks
+                val node = luckPerms.nodeFactory.makeGroupNode(loaded).build()
+                if (!user.hasPermission(node).asBoolean()) {
                     return@loadedHooks
                 }
             }
@@ -107,6 +110,7 @@ class AALPHookPlugin : JavaPlugin() {
                         false -> {
                             when (result.second) {
                                 "in_group" -> logger.warning("LuckPerms reported user ${player.displayName} was already in group ${toApply.name}")
+                                "not_in_group" -> logger.warning("LuckPerms reported user ${player.displayName} was already ing group ${toApply.name}")
                                 "unknown_err" -> logger.severe("LuckPerms reported an unknown error with the previously requested action.")
                             }
                         }
@@ -119,11 +123,12 @@ class AALPHookPlugin : JavaPlugin() {
     }
 
     private fun doAddGroup(user: User, group: Group): Pair<Boolean, String> {
-        if (user.inheritsGroup(group)) {
+        val node = luckPerms.nodeFactory.makeGroupNode(group).build()
+        if (user.hasPermission(node).asBoolean()) {
             return false to "in_group"
         }
 
-        val result: DataMutateResult = user.setPermission(luckPerms.nodeFactory.makeGroupNode(group).build())
+        val result: DataMutateResult = user.setPermission(node)
         return if (result.wasSuccess()) {
             true to "added"
         } else {
@@ -132,11 +137,12 @@ class AALPHookPlugin : JavaPlugin() {
     }
 
     private fun doDelGroup(user: User, group: Group): Pair<Boolean, String> {
-        if (!user.inheritsGroup(group)) {
+        val node = luckPerms.nodeFactory.makeGroupNode(group).build()
+        if (!user.hasPermission(node).asBoolean()) {
             return false to "not_in_group"
         }
 
-        val result = user.unsetPermission(luckPerms.nodeFactory.makeGroupNode(group).build())
+        val result = user.unsetPermission(node)
         return if (result.wasSuccess()) {
             true to "removed"
         } else {

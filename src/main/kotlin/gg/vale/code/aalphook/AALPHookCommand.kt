@@ -22,4 +22,16 @@ class AALPHookCommand(private val plugin: AALPHookPlugin) : BaseCommand() {
                         .color(ChatColor.GREEN).create()
         )
     }
+
+    @Subcommand("debug")
+    fun debug(sender: CommandSender) {
+        val settings = plugin.settings
+        val new = !settings.isDebug()
+        settings.setDebug(new)
+        sender.spigot().sendMessage(
+                *ComponentBuilder("AALP Debug Mode was toggled. It is now: $new")
+                        .color(ChatColor.YELLOW)
+                        .create()
+        )
+    }
 }
