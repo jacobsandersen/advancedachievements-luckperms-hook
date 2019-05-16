@@ -20,7 +20,7 @@ dependencies {
     compile "com.algorithmjunkie.mc:konfig-bukkit:1.0.0"
     compileOnly "org.spigotmc:spigot-api:1.13.2-R0.1-SNAPSHOT"
     compileOnly "com.hm.achievement:advanced-achievements-api:1.1.0"
-    compileOnly "me.lucko.luckperms:luckperms-api:4.3"
+    compileOnly "me.lucko.luckperms:luckperms-api:4.4"
 }
 
 compileKotlin {
