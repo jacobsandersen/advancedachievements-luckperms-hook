@@ -3,10 +3,8 @@ package gg.vale.code.aalphook
 import co.aikar.commands.BukkitCommandManager
 import com.hm.achievement.api.AdvancedAchievementsAPI
 import com.hm.achievement.api.AdvancedAchievementsAPIFetcher
-import me.lucko.luckperms.api.DataMutateResult
-import me.lucko.luckperms.api.Group
-import me.lucko.luckperms.api.LuckPermsApi
-import me.lucko.luckperms.api.User
+import gg.vale.code.aalphook.AALPHookConfig.LuckPermsActionType.*
+import me.lucko.luckperms.api.*
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
@@ -123,31 +121,30 @@ class AALPHookPlugin : JavaPlugin() {
                 for (action in hook.thenApplyActions) {
                     debug("Running $hook action $action for $pdn")
 
-                    val toApply = luckPerms.getGroup(action.value)
-                    if (toApply == null) {
-                        debug("Could not resolve LP Group Object referenced by hook $hook action $action")
-                        continue
-                    }
+                    val target = action.value
 
                     val result = when (action.key) {
-                        AALPHookConfig.LuckPermsActionType.ADDGROUP -> doAddGroup(user, toApply)
-                        AALPHookConfig.LuckPermsActionType.DELGROUP -> doDelGroup(user, toApply)
+                        ADDGROUP -> doAddGroup(user, target)
+                        DELGROUP -> doDelGroup(user, target)
+                        ADDPERM -> doAddPerm(user, target)
+                        DELPERM -> doDelPerm(user, target)
                     }
 
                     debug("Processing result for hook $hook action $action")
                     when (result.first) {
                         true -> {
                             when (result.second) {
-                                "added" -> logger.info("${player.displayName} was added to group ${toApply.name}")
-                                "removed" -> logger.info("${player.displayName} was removed from group ${toApply.name}")
+                                "added" -> logger.info("${player.displayName} was added to group or permission $target")
+                                "removed" -> logger.info("${player.displayName} was removed from group or permission $target")
                             }
                         }
 
                         false -> {
                             when (result.second) {
-                                "in_group" -> logger.warning("LuckPerms reported user ${player.displayName} was already in group ${toApply.name}")
-                                "not_in_group" -> logger.warning("LuckPerms reported user ${player.displayName} was already ing group ${toApply.name}")
+                                "in_group" -> logger.warning("LuckPerms reported user ${player.displayName} was already in group $target")
+                                "not_in_group" -> logger.warning("LuckPerms reported user ${player.displayName} was not already in group $target")
                                 "unknown_err" -> logger.severe("LuckPerms reported an unknown error with the previously requested action.")
+                                "not_found" -> logger.severe("The target group $target could not be found.")
                             }
                         }
                     }
@@ -160,12 +157,32 @@ class AALPHookPlugin : JavaPlugin() {
         }
     }
 
-    private fun doAddGroup(user: User, group: Group): Pair<Boolean, String> {
-        val node = luckPerms.nodeFactory.makeGroupNode(group).build()
-        if (user.hasPermission(node).asBoolean()) {
+    private fun resolveGroup(group: String): Node? {
+        val toApply = luckPerms.getGroup(group)
+
+        if (toApply == null) {
+            debug("Could not resolve LP Group Object referenced by hook!")
+            return null
+        }
+
+        return luckPerms.nodeFactory.makeGroupNode(toApply).build()
+    }
+
+    private fun doAddGroup(user: User, group: String): Pair<Boolean, String> {
+        val resolved = resolveGroup(group) ?: return false to "not_found"
+
+        if (user.hasPermission(resolved).asBoolean()) {
             return false to "in_group"
         }
 
+        return doAddPerm(user, resolved)
+    }
+
+    private fun doAddPerm(user: User, node: String): Pair<Boolean, String> {
+        return doAddPerm(user, luckPerms.buildNode(node).build())
+    }
+
+    private fun doAddPerm(user: User, node: Node): Pair<Boolean, String> {
         val result: DataMutateResult = user.setPermission(node)
         return if (result.wasSuccess()) {
             true to "added"
@@ -174,12 +191,21 @@ class AALPHookPlugin : JavaPlugin() {
         }
     }
 
-    private fun doDelGroup(user: User, group: Group): Pair<Boolean, String> {
-        val node = luckPerms.nodeFactory.makeGroupNode(group).build()
-        if (!user.hasPermission(node).asBoolean()) {
+    private fun doDelGroup(user: User, group: String): Pair<Boolean, String> {
+        val resolved = resolveGroup(group) ?: return false to "not_found"
+
+        if (!user.hasPermission(resolved).asBoolean()) {
             return false to "not_in_group"
         }
 
+        return doDelPerm(user, resolved)
+    }
+
+    private fun doDelPerm(user: User, node: String): Pair<Boolean, String> {
+        return doDelPerm(user, luckPerms.buildNode(node).build())
+    }
+
+    private fun doDelPerm(user: User, node: Node): Pair<Boolean, String> {
         val result = user.unsetPermission(node)
         return if (result.wasSuccess()) {
             true to "removed"

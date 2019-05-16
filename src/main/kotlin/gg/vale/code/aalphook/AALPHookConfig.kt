@@ -16,6 +16,8 @@ class AALPHookConfig(private val plugin: AALPHookPlugin) : BukkitKonfig(plugin, 
                     val actionType= when (actionToGroup[0].toLowerCase().trim()) {
                         "addgroup" -> LuckPermsActionType.ADDGROUP
                         "delgroup" -> LuckPermsActionType.DELGROUP
+                        "addperm" -> LuckPermsActionType.ADDPERM
+                        "delperm" -> LuckPermsActionType.DELPERM
                         else -> throw RuntimeException("Unknown Action Type was found and could not be decoded.")
                     }
 
@@ -48,6 +50,8 @@ class AALPHookConfig(private val plugin: AALPHookPlugin) : BukkitKonfig(plugin, 
 
     enum class LuckPermsActionType {
         ADDGROUP,
-        DELGROUP;
+        DELGROUP,
+        ADDPERM,
+        DELPERM;
     }
 }
