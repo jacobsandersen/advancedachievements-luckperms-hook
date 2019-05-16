@@ -1,9 +1,9 @@
-package gg.vale.code.aalphook
+package com.algorithmjunkie.mc.aalphook
 
 import co.aikar.commands.BukkitCommandManager
 import com.hm.achievement.api.AdvancedAchievementsAPI
 import com.hm.achievement.api.AdvancedAchievementsAPIFetcher
-import gg.vale.code.aalphook.AALPHookConfig.LuckPermsActionType.*
+import com.algorithmjunkie.mc.aalphook.AALPHookConfig.LuckPermsActionType.*
 import me.lucko.luckperms.api.*
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin

@@ -1,4 +1,4 @@
-package gg.vale.code.aalphook
+package com.algorithmjunkie.mc.aalphook
 
 import com.hm.achievement.utils.PlayerAdvancedAchievementEvent
 import org.bukkit.event.EventHandler

@@ -1,4 +1,4 @@
-package gg.vale.code.aalphook
+package com.algorithmjunkie.mc.aalphook
 
 import com.algorithmjunkie.mc.konfig.system.bukkit.BukkitKonfig
 

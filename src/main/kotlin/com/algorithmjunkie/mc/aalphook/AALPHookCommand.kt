@@ -1,4 +1,4 @@
-package gg.vale.code.aalphook
+package com.algorithmjunkie.mc.aalphook
 
 import co.aikar.commands.BaseCommand
 import co.aikar.commands.CommandHelp
