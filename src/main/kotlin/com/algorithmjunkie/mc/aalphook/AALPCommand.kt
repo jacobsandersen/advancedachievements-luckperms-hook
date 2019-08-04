@@ -9,7 +9,7 @@ import org.bukkit.command.CommandSender
 
 @CommandAlias("aalp")
 @CommandPermission("aalp.admin")
-class AALPHookCommand(private val plugin: AALPHookPlugin) : BaseCommand() {
+class AALPCommand(private val plugin: AALPPlugin) : BaseCommand() {
     @Default
     @CatchUnknown
     fun onDefault(help: CommandHelp) = help.showHelp()
