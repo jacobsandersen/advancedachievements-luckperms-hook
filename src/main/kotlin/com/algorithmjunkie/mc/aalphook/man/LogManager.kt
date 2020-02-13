@@ -3,7 +3,7 @@ package com.algorithmjunkie.mc.aalphook.man
 import com.algorithmjunkie.mc.aalphook.AALPPlugin
 
 class LogManager(private val plugin: AALPPlugin) {
-    fun log(message: String) {
+    fun inf(message: String) {
         plugin.logger.info(message)
     }
 
@@ -17,6 +17,6 @@ class LogManager(private val plugin: AALPPlugin) {
 
     fun dbg(message: String) {
         if (!plugin.settings.isDebug()) return
-        log(message)
+        inf(message)
     }
 }

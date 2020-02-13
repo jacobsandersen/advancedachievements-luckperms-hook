@@ -5,7 +5,11 @@ import com.algorithmjunkie.mc.aalphook.hook.Hook
 import com.algorithmjunkie.mc.aalphook.hook.HookActionType
 import com.algorithmjunkie.mc.aalphook.hook.RequiredGroupInfo
 import com.algorithmjunkie.mc.konfig.system.bukkit.BukkitKonfig
+import org.bukkit.ChatColor
 import java.lang.RuntimeException
+import java.util.*
+import kotlin.collections.HashSet
+import kotlin.collections.LinkedHashMap
 
 class HookConfig(private val plugin: AALPPlugin) : BukkitKonfig(plugin, "hooks.yml", plugin.dataFolder) {
     fun getHooks(): Set<Hook> {
@@ -14,18 +18,24 @@ class HookConfig(private val plugin: AALPPlugin) : BukkitKonfig(plugin, "hooks.y
         backend.getKeys(false).forEach { key ->
             val sect = backend.getConfigurationSection(key)
             if (sect != null) {
-                val groupInfo = sect.getConfigurationSection("if-luckperms-group")
-                var requiredGroup: String? = null
-                var requiredTrack: String? = null
-                if (groupInfo != null) {
-                    requiredGroup = groupInfo.getString("name")
-                    requiredTrack = groupInfo.getString("track")
+                val exactGroupInfo = sect.getString("if-luckperms-group-exact")
+                val minimumGroupInfo = sect.getConfigurationSection("if-luckperms-group-minimal")
+
+                val groupInfo = when {
+                    exactGroupInfo != null -> RequiredGroupInfo(exactGroupInfo, null)
+
+                    minimumGroupInfo != null -> RequiredGroupInfo(
+                            minimumGroupInfo.getString("name"),
+                            minimumGroupInfo.getString("track")
+                    )
+
+                    else -> RequiredGroupInfo(null, null)
                 }
 
                 val luckPermsActions = LinkedHashMap<HookActionType, String>()
                 sect.getStringList("then-luckperms-actions").forEach { action ->
                     val actionToGroup = action.split(":")
-                    val actionType= when (actionToGroup[0].toLowerCase().trim()) {
+                    val actionType = when (actionToGroup[0].toLowerCase().trim()) {
                         "addgroup" -> HookActionType.ADDGROUP
                         "delgroup" -> HookActionType.DELGROUP
                         "addperm" -> HookActionType.ADDPERM
@@ -36,11 +46,10 @@ class HookConfig(private val plugin: AALPPlugin) : BukkitKonfig(plugin, "hooks.y
                     luckPermsActions[actionType] = actionToGroup[1].trim()
                 }
 
-                out.add(Hook(
-                        RequiredGroupInfo(requiredGroup, requiredTrack),
-                        sect.getStringList("if-achievements"),
-                        luckPermsActions
-                ))
+                val thenSendMessages = LinkedList<String>()
+                sect.getStringList("on-success-then-send-messages").forEach { thenSendMessages.add(ChatColor.translateAlternateColorCodes('&', it)) }
+
+                out.add(Hook(key, groupInfo, sect.getStringList("if-achievements"), luckPermsActions, thenSendMessages))
             } else {
                 plugin.logger.severe("One of the hooks ($key) could not be loaded. Please check the configuration! I loaded what I could.")
             }

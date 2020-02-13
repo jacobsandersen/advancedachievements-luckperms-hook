@@ -1,5 +1,11 @@
 apprentice-to-master-hook:
-  if-already-in-luckperms-group: "apprentice_of_the_environment"
+  if-luckperms-group-exact: "apprentice_of_the_environment"
+
+  # Optionally, set a group that a user must minimally have in a given track. Both name and track are
+  # required for this to work.
+  #if-luckperms-group-minimal:
+  #  name: "apprentice_of_the_environment"
+  #  track: "environmental-skill-tree"
 
   if-achievements:
     - "kill_10_sheep"
@@ -11,3 +17,6 @@ apprentice-to-master-hook:
   then-luckperms-actions:
     - "delgroup:apprentice_of_the_environment"
     - "addgroup:master_of_the_environment"
+
+  on-success-then-send-messages:
+    - "&3You have been promoted to Master of the Environment!"
