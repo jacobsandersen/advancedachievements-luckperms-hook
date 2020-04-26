@@ -5,12 +5,12 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 
-class AALPHookListener(private val plugin: AALPHookPlugin) : Listener {
+class AchievementListener(private val plugin: AALPPlugin) : Listener {
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     fun onAdvancedAchievementAward(event: PlayerAdvancedAchievementEvent) {
         plugin.server.scheduler.runTaskLater(
                 plugin,
-                Runnable { plugin.synchronize(event.player) },
+                Runnable { plugin.sync.synchronize(event.player) },
                 20L
         )
     }
