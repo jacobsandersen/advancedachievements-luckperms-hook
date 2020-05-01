@@ -1,6 +1,7 @@
 package com.algorithmjunkie.mc.aalphook.conf
 
 import com.algorithmjunkie.mc.aalphook.AALPPlugin
+import com.algorithmjunkie.mc.aalphook.hook.Action
 import com.algorithmjunkie.mc.aalphook.hook.Hook
 import com.algorithmjunkie.mc.aalphook.hook.HookActionType
 import com.algorithmjunkie.mc.aalphook.hook.RequiredGroupInfo
@@ -8,6 +9,7 @@ import com.algorithmjunkie.mc.konfig.system.bukkit.BukkitKonfig
 import org.bukkit.ChatColor
 import java.lang.RuntimeException
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
 import kotlin.collections.LinkedHashMap
 
@@ -32,7 +34,7 @@ class HookConfig(private val plugin: AALPPlugin) : BukkitKonfig(plugin, "hooks.y
                     else -> RequiredGroupInfo(null, null)
                 }
 
-                val luckPermsActions = LinkedHashMap<HookActionType, String>()
+                val luckPermsActions = ArrayList<Action>()
                 sect.getStringList("then-luckperms-actions").forEach { action ->
                     val actionToGroup = action.split(":")
                     val actionType = when (actionToGroup[0].toLowerCase().trim()) {
@@ -42,8 +44,11 @@ class HookConfig(private val plugin: AALPPlugin) : BukkitKonfig(plugin, "hooks.y
                         "delperm" -> HookActionType.DELPERM
                         else -> throw RuntimeException("Unknown Action Type was found and could not be decoded.")
                     }
+                    val value = actionToGroup[1].trim();
+                    val server = actionToGroup[2].trim();
+                    val world = actionToGroup[3].trim();
 
-                    luckPermsActions[actionType] = actionToGroup[1].trim()
+                    luckPermsActions.add(Action(actionType, value, server, world))
                 }
 
                 val thenSendMessages = LinkedList<String>()

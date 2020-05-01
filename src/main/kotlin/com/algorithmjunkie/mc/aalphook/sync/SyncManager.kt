@@ -3,6 +3,7 @@ package com.algorithmjunkie.mc.aalphook.sync
 import com.algorithmjunkie.mc.aalphook.AALPPlugin
 import com.algorithmjunkie.mc.aalphook.hook.HookActionType
 import com.algorithmjunkie.mc.aalphook.man.asLpUser
+import com.algorithmjunkie.mc.aalphook.man.getLpNode
 import com.algorithmjunkie.mc.aalphook.man.hasLpGroup
 import com.algorithmjunkie.mc.aalphook.man.minimallyHasLpGroup
 import com.okkero.skedule.SynchronizationContext
@@ -67,13 +68,16 @@ class SyncManager(private val plugin: AALPPlugin) {
                     for (action in hook.thenApplyActions) {
                         plugin.log.dbg("Running ${hook.name} action $action for $playerDisplayName")
 
-                        val target = action.value
 
-                        val result = when (action.key) {
-                            HookActionType.ADDGROUP -> doAddGroup(player, target)
-                            HookActionType.DELGROUP -> doDelGroup(player, target)
-                            HookActionType.ADDPERM -> doAddPerm(player, target)
-                            HookActionType.DELPERM -> doDelPerm(player, target)
+                        val target = action.target
+                        val server = action.server
+                        val world = action.world
+
+                        val result = when (action.actionType) {
+                            HookActionType.ADDGROUP -> doAddGroup(player, target, server, world)
+                            HookActionType.DELGROUP -> doDelGroup(player, target, server, world)
+                            HookActionType.ADDPERM -> doAddPerm(player, target, server, world)
+                            HookActionType.DELPERM -> doDelPerm(player, target, server, world)
                         }
 
                         plugin.log.dbg("Processing result for hook ${hook.name} action $action")
@@ -91,8 +95,8 @@ class SyncManager(private val plugin: AALPPlugin) {
 
                             false -> {
                                 when (result.second) {
-                                    "in_group" -> plugin.log.wrn("LuckPerms reported user ${player.displayName} was already in group $target")
-                                    "not_in_group" -> plugin.log.wrn("LuckPerms reported user ${player.displayName} was not already in group $target")
+                                    "in_group" -> plugin.log.wrn("LuckPerms reported user ${player.displayName} was already in group $target. Server: $server, World: $world")
+                                    "not_in_group" -> plugin.log.wrn("LuckPerms reported user ${player.displayName} was not already in group $target. Server: $server, World: $world")
                                     "unknown_err" -> plugin.log.sev("LuckPerms reported an unknown error with the previously requested action.")
                                     "not_found" -> plugin.log.sev("The target group $target could not be found.")
                                 }
@@ -119,18 +123,18 @@ class SyncManager(private val plugin: AALPPlugin) {
         return resolved
     }
 
-    private fun doAddGroup(player: Player, group: String): Pair<Boolean, String> {
+    private fun doAddGroup(player: Player, group: String, server: String? = null, world: String? = null): Pair<Boolean, String> {
         val resolved = resolveGroup(group) ?: return false to "not_found"
 
         if (player.hasLpGroup(resolved)) {
             return false to "in_group"
         }
 
-        return doAddPerm(player, "group.${group}")
+        return doAddPerm(player, "group.${group}", server, world)
     }
 
-    private fun doAddPerm(player: Player, node: String): Pair<Boolean, String> {
-        return doAddPerm(player, Node.builder(node).build())
+    private fun doAddPerm(player: Player, node: String, server: String? = null, world: String? = null): Pair<Boolean, String> {
+        return doAddPerm(player, player.getLpNode(node, server, world))
     }
 
     private fun doAddPerm(player: Player, node: Node): Pair<Boolean, String> {
@@ -142,18 +146,18 @@ class SyncManager(private val plugin: AALPPlugin) {
         }
     }
 
-    private fun doDelGroup(player: Player, group: String): Pair<Boolean, String> {
+    private fun doDelGroup(player: Player, group: String, server: String? = null, world: String? = null): Pair<Boolean, String> {
         val resolved = resolveGroup(group) ?: return false to "not_found"
 
         if (!player.hasLpGroup(resolved)) {
             return false to "not_in_group"
         }
 
-        return doDelPerm(player, "group.${group}")
+        return doDelPerm(player, "group.${group}", server, world)
     }
 
-    private fun doDelPerm(player: Player, node: String): Pair<Boolean, String> {
-        return doDelPerm(player, Node.builder(node).build())
+    private fun doDelPerm(player: Player, node: String, server: String? = null, world: String? = null): Pair<Boolean, String> {
+        return doDelPerm(player, player.getLpNode(node, server, world))
     }
 
     private fun doDelPerm(player: Player, node: Node): Pair<Boolean, String> {
