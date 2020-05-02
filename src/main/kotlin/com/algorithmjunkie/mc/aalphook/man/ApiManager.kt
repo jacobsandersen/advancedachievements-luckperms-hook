@@ -25,15 +25,11 @@ data class ApiManager(
     }
 }
 
-fun Player.getLpNode(node: String, server: String? = null, world: String? = null): Node {
-    val builder = Node.builder(node)
-    server?.let { builder.withContext(DefaultContextKeys.SERVER_KEY, server) }
-    world?.let { builder.withContext(DefaultContextKeys.WORLD_KEY, world) }
-    return builder.build();
-}
+
 
 fun Player.hasLpNode(node: String, server: String? = null, world: String? = null): Boolean {
-    return this.hasLpNode(this.getLpNode(node, server, world))
+    val predicate = if(server == null && world == null) NodeEqualityPredicate.EXACT else NodeEqualityPredicate.IGNORE_EXPIRY_TIME_AND_VALUE
+    return this.hasLpNode(AALPPlugin.getLpNode(node, server, world), predicate)
 }
 
 fun Player.hasLpNode(node: Node, predicate: NodeEqualityPredicate = NodeEqualityPredicate.EXACT): Boolean {

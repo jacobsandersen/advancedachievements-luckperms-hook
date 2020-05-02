@@ -1,19 +1,29 @@
 package com.algorithmjunkie.mc.aalphook.conf
 
 import com.algorithmjunkie.mc.aalphook.AALPPlugin
-import com.algorithmjunkie.mc.aalphook.hook.Action
-import com.algorithmjunkie.mc.aalphook.hook.Hook
-import com.algorithmjunkie.mc.aalphook.hook.HookActionType
-import com.algorithmjunkie.mc.aalphook.hook.RequiredGroupInfo
+import com.algorithmjunkie.mc.aalphook.hook.*
 import com.algorithmjunkie.mc.konfig.system.bukkit.BukkitKonfig
 import org.bukkit.ChatColor
 import java.lang.RuntimeException
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
-import kotlin.collections.LinkedHashMap
 
 class HookConfig(private val plugin: AALPPlugin) : BukkitKonfig(plugin, "hooks.yml", plugin.dataFolder) {
+    fun splitPackedPerm(string: String?): Triple<String, String?, String?>? {
+        if(string == null) return null
+
+        val unpack = string.split(":")
+
+        if(unpack.isEmpty()) return null
+
+        val target = unpack[0]
+        val server = if (unpack.size > 1) unpack[1] else null
+        val world = if (unpack.size > 2) unpack[2] else null
+
+        return Triple(target, server, world)
+    }
+
     fun getHooks(): Set<Hook> {
         val out = HashSet<Hook>()
 
@@ -24,12 +34,18 @@ class HookConfig(private val plugin: AALPPlugin) : BukkitKonfig(plugin, "hooks.y
                 val minimumGroupInfo = sect.getConfigurationSection("if-luckperms-group-minimal")
 
                 val groupInfo = when {
-                    exactGroupInfo != null -> RequiredGroupInfo(exactGroupInfo, null)
+                    exactGroupInfo != null -> {
+                        val triple = splitPackedPerm(exactGroupInfo)
+                        RequiredGroupInfo(triple?.first?.let { AALPPlugin.getLpGroupNode(it, triple.second, triple.third) }, null)
+                    }
 
-                    minimumGroupInfo != null -> RequiredGroupInfo(
-                            minimumGroupInfo.getString("name"),
-                            minimumGroupInfo.getString("track")
-                    )
+                    minimumGroupInfo != null -> {
+                        val triple = splitPackedPerm(minimumGroupInfo.getString("name"))
+                        RequiredGroupInfo(
+                                triple?.first?.let { AALPPlugin.getLpGroupNode(it, triple.second, triple.third) },
+                                minimumGroupInfo.getString("track")
+                        )
+                    }
 
                     else -> RequiredGroupInfo(null, null)
                 }
@@ -49,7 +65,12 @@ class HookConfig(private val plugin: AALPPlugin) : BukkitKonfig(plugin, "hooks.y
                     val server = if (actionToGroup.size > 2) actionToGroup[2].trim() else null
                     val world = if (actionToGroup.size > 3) actionToGroup[3].trim() else null
 
-                    luckPermsActions.add(Action(actionType, value, server, world))
+                    val node = when (actionType) {
+                        HookActionType.ADDGROUP, HookActionType.DELGROUP -> AALPPlugin.getLpGroupNode(value, server, world)
+                        HookActionType.ADDPERM, HookActionType.DELPERM -> AALPPlugin.getLpNode(value, server, world)
+                    }
+
+                    luckPermsActions.add(Action(actionType, node))
                 }
 
                 val thenSendMessages = LinkedList<String>()

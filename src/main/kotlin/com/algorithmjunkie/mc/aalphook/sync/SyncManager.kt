@@ -3,8 +3,8 @@ package com.algorithmjunkie.mc.aalphook.sync
 import com.algorithmjunkie.mc.aalphook.AALPPlugin
 import com.algorithmjunkie.mc.aalphook.hook.HookActionType
 import com.algorithmjunkie.mc.aalphook.man.asLpUser
-import com.algorithmjunkie.mc.aalphook.man.getLpNode
 import com.algorithmjunkie.mc.aalphook.man.hasLpGroup
+import com.algorithmjunkie.mc.aalphook.man.hasLpNode
 import com.algorithmjunkie.mc.aalphook.man.minimallyHasLpGroup
 import com.okkero.skedule.SynchronizationContext
 import com.okkero.skedule.schedule
@@ -25,14 +25,14 @@ class SyncManager(private val plugin: AALPPlugin) {
 
                 val requiredGroup = hook.requiredGroup
                 if (requiredGroup.isApplicable()) {
-                    val lpGroup = plugin.apis.getLpGroup(requiredGroup.name!!)
+                    val lpGroup = plugin.apis.getLpGroup(requiredGroup.name)
                     if (lpGroup == null) {
-                        plugin.log.dbg("Failed to load LP Group Object for group ${requiredGroup.name}; hook will be skipped!")
+                        plugin.log.dbg("Failed to load LP Group Object for group ${requiredGroup.node!!.key}; hook will be skipped!")
                         continue
                     }
 
                     if (requiredGroup.isTrackBased()) {
-                        plugin.log.dbg("Hook ${hook.name} minimally requires LP group ${requiredGroup.name} and is based on track ${requiredGroup.track}")
+                        plugin.log.dbg("Hook ${hook.name} minimally requires LP group ${requiredGroup.node} and is based on track ${requiredGroup.track}")
                         plugin.log.dbg("Checking if player $playerDisplayName minimally has group or higher group in track for hook ${hook.name}")
 
                         if (!player.minimallyHasLpGroup(lpGroup, requiredGroup.track!!)) {
@@ -45,8 +45,8 @@ class SyncManager(private val plugin: AALPPlugin) {
                         plugin.log.dbg("Hook ${hook.name} strictly requires LP group ${requiredGroup.name} and is not track based")
                         plugin.log.dbg("Checking if player $playerDisplayName has required group for hook ${hook.name}")
 
-                        if (!player.hasLpGroup(lpGroup)) {
-                            plugin.log.dbg("Player $playerDisplayName did not have the required group for ${hook.name}")
+                        if (!player.hasLpNode(requiredGroup.node!!)) {
+                            plugin.log.dbg("Player $playerDisplayName did not have the required group for ${hook.name} || ${requiredGroup.node} vs ${lpGroup.name}")
                             continue
                         }
 
@@ -69,23 +69,21 @@ class SyncManager(private val plugin: AALPPlugin) {
                         plugin.log.dbg("Running ${hook.name} action $action for $playerDisplayName")
 
 
-                        val target = action.target
-                        val server = action.server
-                        val world = action.world
+                        val node = action.node
 
                         val result = when (action.actionType) {
-                            HookActionType.ADDGROUP -> doAddGroup(player, target, server, world)
-                            HookActionType.DELGROUP -> doDelGroup(player, target, server, world)
-                            HookActionType.ADDPERM -> doAddPerm(player, target, server, world)
-                            HookActionType.DELPERM -> doDelPerm(player, target, server, world)
+                            HookActionType.ADDGROUP -> doAddGroup(player, node)
+                            HookActionType.DELGROUP -> doDelGroup(player, node)
+                            HookActionType.ADDPERM -> doAddPerm(player, node)
+                            HookActionType.DELPERM -> doDelPerm(player, node)
                         }
 
                         plugin.log.dbg("Processing result for hook ${hook.name} action $action")
                         when (result.first) {
                             true -> {
                                 when (result.second) {
-                                    "added" -> plugin.log.inf("${player.displayName} was added to group or permission $target")
-                                    "removed" -> plugin.log.inf("${player.displayName} was removed from group or permission $target")
+                                    "added" -> plugin.log.inf("${player.displayName} was added to group or permission ${node.value}")
+                                    "removed" -> plugin.log.inf("${player.displayName} was removed from group or permission ${node.value}")
                                 }
 
                                 if (hook.thenSendMessages.isNotEmpty()) {
@@ -95,10 +93,10 @@ class SyncManager(private val plugin: AALPPlugin) {
 
                             false -> {
                                 when (result.second) {
-                                    "in_group" -> plugin.log.wrn("LuckPerms reported user ${player.displayName} was already in group $target. Server: $server, World: $world")
-                                    "not_in_group" -> plugin.log.wrn("LuckPerms reported user ${player.displayName} was not already in group $target. Server: $server, World: $world")
+                                    "in_group" -> plugin.log.wrn("LuckPerms reported user ${player.displayName} was already in group ${node.value}. Contexts: ${node.contexts}")
+                                    "not_in_group" -> plugin.log.wrn("LuckPerms reported user ${player.displayName} was not already in group ${node.value}. Contexts: ${node.contexts}")
                                     "unknown_err" -> plugin.log.sev("LuckPerms reported an unknown error with the previously requested action.")
-                                    "not_found" -> plugin.log.sev("The target group $target could not be found.")
+                                    "not_found" -> plugin.log.sev("The target group ${node.value} could not be found.")
                                 }
                             }
                         }
@@ -133,8 +131,16 @@ class SyncManager(private val plugin: AALPPlugin) {
         return doAddPerm(player, "group.${group}", server, world)
     }
 
+    private fun doAddGroup(player: Player, node: Node): Pair<Boolean, String> {
+        if (player.hasLpNode(node)) {
+            return false to "in_group"
+        }
+
+        return doAddPerm(player, node);
+    }
+
     private fun doAddPerm(player: Player, node: String, server: String? = null, world: String? = null): Pair<Boolean, String> {
-        return doAddPerm(player, player.getLpNode(node, server, world))
+        return doAddPerm(player, AALPPlugin.getLpNode(node, server, world))
     }
 
     private fun doAddPerm(player: Player, node: Node): Pair<Boolean, String> {
@@ -156,8 +162,15 @@ class SyncManager(private val plugin: AALPPlugin) {
         return doDelPerm(player, "group.${group}", server, world)
     }
 
+    private fun doDelGroup(player: Player, node: Node): Pair<Boolean, String> {
+        if (!player.hasLpNode(node)) {
+            return false to "not_in_group"
+        }
+        return doDelPerm(player, node)
+    }
+
     private fun doDelPerm(player: Player, node: String, server: String? = null, world: String? = null): Pair<Boolean, String> {
-        return doDelPerm(player, player.getLpNode(node, server, world))
+        return doDelPerm(player, AALPPlugin.getLpNode(node, server, world))
     }
 
     private fun doDelPerm(player: Player, node: Node): Pair<Boolean, String> {
