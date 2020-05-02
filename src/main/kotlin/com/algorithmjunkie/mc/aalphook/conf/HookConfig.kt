@@ -45,8 +45,9 @@ class HookConfig(private val plugin: AALPPlugin) : BukkitKonfig(plugin, "hooks.y
                         else -> throw RuntimeException("Unknown Action Type was found and could not be decoded.")
                     }
                     val value = actionToGroup[1].trim();
-                    val server = actionToGroup[2].trim();
-                    val world = actionToGroup[3].trim();
+
+                    val server = if (actionToGroup.size > 2) actionToGroup[2].trim() else null
+                    val world = if (actionToGroup.size > 3) actionToGroup[3].trim() else null
 
                     luckPermsActions.add(Action(actionType, value, server, world))
                 }
