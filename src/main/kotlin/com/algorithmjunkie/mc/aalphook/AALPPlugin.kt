@@ -11,6 +11,8 @@ import com.algorithmjunkie.mc.aalphook.sync.SyncTask
 import com.hm.achievement.api.AdvancedAchievementsAPI
 import com.hm.achievement.api.AdvancedAchievementsAPIFetcher
 import net.luckperms.api.LuckPerms
+import net.luckperms.api.context.DefaultContextKeys
+import net.luckperms.api.node.Node
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
 import java.lang.RuntimeException
@@ -98,5 +100,16 @@ class AALPPlugin : JavaPlugin() {
 
     companion object {
         lateinit var instance: AALPPlugin
+
+        fun getLpGroupNode(groupName: String, server: String? = null, world: String? = null ): Node {
+            return getLpNode("group.${groupName}", server, world)
+        }
+
+        fun getLpNode(node: String, server: String? = null, world: String? = null): Node {
+            val builder = Node.builder(node)
+            server?.let { builder.withContext(DefaultContextKeys.SERVER_KEY, server) }
+            world?.let { builder.withContext(DefaultContextKeys.WORLD_KEY, world) }
+            return builder.build();
+        }
     }
 }

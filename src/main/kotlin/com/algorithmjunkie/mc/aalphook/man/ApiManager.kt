@@ -3,6 +3,7 @@ package com.algorithmjunkie.mc.aalphook.man
 import com.algorithmjunkie.mc.aalphook.AALPPlugin
 import com.hm.achievement.api.AdvancedAchievementsAPI
 import net.luckperms.api.LuckPerms
+import net.luckperms.api.context.DefaultContextKeys
 import net.luckperms.api.model.group.Group
 import net.luckperms.api.model.user.User
 import net.luckperms.api.node.Node
@@ -24,16 +25,19 @@ data class ApiManager(
     }
 }
 
-fun Player.hasLpNode(node: String): Boolean {
-    return this.hasLpNode(Node.builder(node).build())
+
+
+fun Player.hasLpNode(node: String, server: String? = null, world: String? = null): Boolean {
+    val predicate = if(server == null && world == null) NodeEqualityPredicate.EXACT else NodeEqualityPredicate.IGNORE_EXPIRY_TIME_AND_VALUE
+    return this.hasLpNode(AALPPlugin.getLpNode(node, server, world), predicate)
 }
 
 fun Player.hasLpNode(node: Node, predicate: NodeEqualityPredicate = NodeEqualityPredicate.EXACT): Boolean {
     return this.asLpUser().data().contains(node, predicate).asBoolean()
 }
 
-fun Player.hasLpGroup(group: Group): Boolean {
-    return this.hasLpNode("group.${group.name}")
+fun Player.hasLpGroup(group: Group, server: String? = null, world: String? = null): Boolean {
+    return this.hasLpNode("group.${group.name}", server, world)
 }
 
 fun Player.minimallyHasLpGroup(group: Group, trackName: String): Boolean {
